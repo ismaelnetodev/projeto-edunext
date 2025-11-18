@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
 
 import com.educamais.app.dtos.AlunoCadastroDTO;
 import com.educamais.app.enums.Roles;
+import com.educamais.app.exceptions.InvalidPasswordException;
+import com.educamais.app.exceptions.ResourceAlreadyExistsException;
+import com.educamais.app.exceptions.ResourceNotFoundException;
 import com.educamais.app.model.Aluno;
 import com.educamais.app.model.Turma;
 import com.educamais.app.repository.AlunoRepository;
@@ -30,10 +33,10 @@ public class AlunoService {
     }
 
     public Aluno criarAluno(AlunoCadastroDTO data){
-        Turma turma = turmaRepository.findById(data.turmaId()).orElseThrow(() -> new RuntimeException("Turma não encontrada com o id: " + data.turmaId()));
+        Turma turma = turmaRepository.findById(data.turmaId()).orElseThrow(() -> new ResourceNotFoundException("Turma", "id", data.turmaId()));
 
         if (alunoRepository.findByMatricula(data.matricula()).isPresent()){
-            throw new RuntimeException("Já existe um aluno com a matrícula: " + data.matricula());
+            throw new ResourceAlreadyExistsException("Aluno", "matrícula", data.matricula());
         }
 
         String senhaGerada = "A@" + data.matricula().substring(Math.max(0, data.matricula().length() - 4));
@@ -62,14 +65,14 @@ public class AlunoService {
 
     public Aluno getAlunoById(UUID id){
         return alunoRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Aluno não encontrado com o id: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("Aluno", "id", id));
     }
 
     public Aluno updateAluno(UUID id, AlunoCadastroDTO data){
-        Turma turma = turmaRepository.findById(data.turmaId()).orElseThrow(() -> new RuntimeException("Turma não encontrada com o id: " + data.turmaId()));
+        Turma turma = turmaRepository.findById(data.turmaId()).orElseThrow(() -> new ResourceNotFoundException("Turma", "id", data.turmaId()));
 
         Aluno alunoExistente = alunoRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Aluno não encontrado com o id: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("Aluno", "id", id));
 
         alunoExistente.setNome(data.nome());
         alunoExistente.setMatricula(data.matricula());
@@ -92,10 +95,10 @@ public class AlunoService {
 
     public void alterarSenha(String login, String senhaAntiga, String novaSenha){
         Aluno aluno = alunoRepository.findByLogin(login)
-            .orElseThrow(() -> new RuntimeException("Aluno não encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException("Aluno", "login", login));
 
         if (!passwordEncoder.matches(senhaAntiga, aluno.getPassword())){
-            throw new RuntimeException("Senha antiga incorreta");
+            throw new InvalidPasswordException();
         }
 
         aluno.setPassword(passwordEncoder.encode(novaSenha));
@@ -105,7 +108,7 @@ public class AlunoService {
 
     public String resetarSenha(UUID alunoId){
         Aluno aluno = alunoRepository.findById(alunoId)
-            .orElseThrow(() -> new RuntimeException("Aluno não encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException("Aluno", "id", alunoId));
 
         String senhaTemporaria = "A@" + aluno.getMatricula().substring(Math.max(0, aluno.getMatricula().length() - 4));
         aluno.setPassword(passwordEncoder.encode(senhaTemporaria));

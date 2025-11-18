@@ -1,13 +1,14 @@
 package com.educamais.app.services;
 
 import java.util.List;
-import java.util.Optional;
-
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.educamais.app.dtos.QuestaoCadastroDTO;
+import com.educamais.app.exceptions.BusinessException;
+import com.educamais.app.exceptions.ResourceNotFoundException;
+import com.educamais.app.exceptions.UnauthorizedOperationException;
 import com.educamais.app.model.Disciplina;
 import com.educamais.app.model.Professor;
 import com.educamais.app.model.Questao;
@@ -30,9 +31,6 @@ public class QuestaoService {
     @Transactional
     public Questao criarQuestao(QuestaoCadastroDTO data){
         Professor professor = getProfessorLogado();
-
-        if (professor == null) throw new RuntimeException("Professor não autenticado.");
-
         Disciplina disciplina = resolveDisciplina(data.disciplina());
 
         Questao questao = new Questao();
@@ -54,17 +52,17 @@ public class QuestaoService {
 
     @Transactional(readOnly = true)
     public Questao getQuestao(Long id){     
-        return questaoRepository.findById(id).orElse(null);
+        return questaoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Questão", "id", id));
     }
 
     @Transactional
     public Questao updateQuestao(QuestaoCadastroDTO data, Long id){
         Professor professor = getProfessorLogado();
 
-        Questao questao = questaoRepository.findById(id).orElseThrow(() -> new RuntimeException("Questão não encontrada."));
+        Questao questao = questaoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Questão", "id", id));
 
         if (!questao.getProfessorCriador().getId().equals(professor.getId())){
-            throw new RuntimeException("Acesso Negado: Você só pode editar suas próprias questões.");
+            throw new UnauthorizedOperationException("Você só pode editar suas próprias questões.");
         }
 
         Disciplina disciplina = resolveDisciplina(data.disciplina());
@@ -82,10 +80,10 @@ public class QuestaoService {
     public boolean deleteQuestao(Long id){
         Professor professor = getProfessorLogado();
 
-        Questao questao = questaoRepository.findById(id).orElseThrow(() -> new RuntimeException("Questão não encontrada com o ID: " + id));
+        Questao questao = questaoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Questão", "id", id));
 
         if (!questao.getProfessorCriador().getId().equals(professor.getId())) {
-            throw new RuntimeException("Acesso Negado: Você só pode deletar suas próprias questões.");
+            throw new UnauthorizedOperationException("Você só pode deletar suas próprias questões.");
         }
 
         questaoRepository.deleteById(id);
@@ -96,7 +94,7 @@ public class QuestaoService {
     public Questao clonarQuestao(Long idQuestaoOriginal){
         Professor professorClonando = getProfessorLogado();
 
-        Questao questaoOriginal = questaoRepository.findById(idQuestaoOriginal).orElseThrow(() -> new RuntimeException("Questão não encontrada"));
+        Questao questaoOriginal = questaoRepository.findById(idQuestaoOriginal).orElseThrow(() -> new ResourceNotFoundException("Questão", "id", idQuestaoOriginal));
 
         Questao novaQuestao = new Questao();
 
@@ -115,7 +113,7 @@ public class QuestaoService {
         Professor professor = (Professor) professorRepository.findByLogin(login);
 
         if (professor == null){
-            throw new RuntimeException("Professor não autenticado");
+            throw new UnauthorizedOperationException("Professor não autenticado");
         }
 
         return professor;

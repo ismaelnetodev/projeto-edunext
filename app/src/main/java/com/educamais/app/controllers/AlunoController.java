@@ -5,7 +5,9 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -58,17 +60,21 @@ public class AlunoController {
     
 
     @GetMapping
-    public ResponseEntity<Page<AlunoResponseDTO>> listarAlunos(@RequestParam(value = "termo", required = false) String termo, Pageable pageable){
+    public ResponseEntity<Page<AlunoResponseDTO>> listarAlunos(
+        @RequestParam(required = false) String busca,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size, 
+        @RequestParam(defaultValue = "nome") String sortBy, 
+        @RequestParam(defaultValue = "asc") String sortDir
+        ){
         
-        Page<Aluno> alunosPage = alunoService.getAlunos(termo, pageable);
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
         
-        if (alunosPage.isEmpty()){
-            return ResponseEntity.notFound().build();
-        }
+        Page<Aluno> alunos = alunoService.getAlunos(busca, pageable);
+        Page<AlunoResponseDTO> responseDTOs = alunos.map(AlunoResponseDTO::new);
 
-        Page<AlunoResponseDTO> responseDTOs = alunosPage.map(AlunoResponseDTO::new);
-
-        return ResponseEntity.ok().body(responseDTOs);
+        return ResponseEntity.ok(responseDTOs);
     }
 
     @GetMapping("/{id}")

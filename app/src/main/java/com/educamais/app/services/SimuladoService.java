@@ -23,6 +23,11 @@ import com.educamais.app.dtos.SimuladoParaFazerDTO;
 import com.educamais.app.dtos.SimuladoResponseDTO;
 import com.educamais.app.dtos.SimuladoResumoDTO;
 import com.educamais.app.dtos.SimuladoSubmeterDTO;
+import com.educamais.app.exceptions.InsufficientQuestionsException;
+import com.educamais.app.exceptions.InvalidDataException;
+import com.educamais.app.exceptions.ResourceNotFoundException;
+import com.educamais.app.exceptions.SimuladoNotAvailableException;
+import com.educamais.app.exceptions.UnauthorizedOperationException;
 import com.educamais.app.model.Aluno;
 import com.educamais.app.model.Disciplina;
 import com.educamais.app.model.Professor;
@@ -68,19 +73,19 @@ public class SimuladoService {
     public SimuladoResponseDTO gerarSimuladoAleatorio(SimuladoGerarDTO data){
         String login = SecurityContextHolder.getContext().getAuthentication().getName();
         Professor professor = (Professor) professorRepository.findByLogin(login);
-        if (professor == null) throw new RuntimeException("Professor não autenticado");
+        if (professor == null) throw new UnauthorizedOperationException("Professor não autenticado");
 
         Turma turma = turmaRepository.findById(data.turmaId())
-            .orElseThrow(() -> new RuntimeException("Turma não encontrada."));
+            .orElseThrow(() -> new ResourceNotFoundException("Turma", "id", data.turmaId()));
 
         Disciplina disciplina = disciplinaRepository.findById(data.disciplinaId())
-        .orElseThrow(() -> new RuntimeException("Disciplina não encontrada."));
+        .orElseThrow(() -> new ResourceNotFoundException("Disciplina", "id", data.disciplinaId()));
 
         List<Questao> bancoDeQuestoes = questaoRepository
             .findByDisciplinaAndProfessorCriador(disciplina, professor);
 
         if (bancoDeQuestoes.size() < data.numeroQuestoes()){
-            throw new RuntimeException("Não há questões suficientes para esta disciplina.");
+            throw new InsufficientQuestionsException(data.numeroQuestoes(), bancoDeQuestoes.size());
         }
 
         Collections.shuffle(bancoDeQuestoes);
@@ -105,7 +110,7 @@ public class SimuladoService {
     @Transactional(readOnly = true)
     public List<SimuladoResponseDTO> getSimuladoParaAluno(){
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Aluno aluno = alunoRepository.findByMatricula(username).orElseThrow(() -> new RuntimeException("Aluno não encontrado"));
+        Aluno aluno = alunoRepository.findByMatricula(username).orElseThrow(() -> new ResourceNotFoundException("Aluno", "login", username));
 
         List<Simulado> simulados = simuladoRepository.findByTurmaId(aluno.getTurma().getId());
 
@@ -128,7 +133,7 @@ public class SimuladoService {
     @Transactional(readOnly = true)
     public SimuladoParaFazerDTO getSimuladoParaFazer(Long simuladoId) {
         Simulado simulado = simuladoRepository.findById(simuladoId)
-            .orElseThrow(() -> new RuntimeException("Simulado não encontrado."));
+            .orElseThrow(() -> new ResourceNotFoundException("Simulado", "id", simuladoId));
         
         // (Lógica de segurança futura: verificar se o aluno é da turma)
         
@@ -138,28 +143,28 @@ public class SimuladoService {
     @Transactional
     public SimuladoAlunoResponseDTO submeterSimulado(Long simuladoId, SimuladoSubmeterDTO data){
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Aluno aluno = alunoRepository.findByMatricula(username).orElseThrow(() -> new RuntimeException("Aluno não encontrado"));
+        Aluno aluno = alunoRepository.findByMatricula(username).orElseThrow(() -> new ResourceNotFoundException("Aluno", "login", username));
 
-        Simulado simulado = simuladoRepository.findById(simuladoId).orElseThrow(() -> new RuntimeException("Nenhum simulado encontrado."));
+        Simulado simulado = simuladoRepository.findById(simuladoId).orElseThrow(() -> new ResourceNotFoundException("Simulado", "id", simuladoId));
 
         LocalDateTime agora = LocalDateTime.now();
 
         if (agora.isBefore(simulado.getDataInicioDisponivel())){
-            throw new RuntimeException("O simulado ainda não está disponível");
+            throw new SimuladoNotAvailableException("O simulado ainda não está disponível");
         }
 
         if (agora.isAfter(simulado.getDataFimDisponivel())){
-            throw new RuntimeException("O prazo para este simulado expirou");
+            throw new SimuladoNotAvailableException("O prazo para este simulado expirou");
         }
 
         boolean jaSubmeteu = simuladoAlunoRepository.existsByAlunoIdAndSimuladoId(aluno.getId(), simuladoId);
 
         if (jaSubmeteu){
-            throw new RuntimeException("Este simulado já foi submetido por este aluno.");
+            throw new SimuladoNotAvailableException("Este simulado já foi submetido por este aluno.");
         }
 
         if (!simulado.getTurma().getId().equals(aluno.getTurma().getId())) {
-            throw new RuntimeException("Acesso Negado: Este simulado não pertence à sua turma.");
+            throw new SimuladoNotAvailableException("Acesso Negado: Este simulado não pertence à sua turma.");
         }
 
         double notaFinal = 0.0;
@@ -192,7 +197,7 @@ public class SimuladoService {
         String login = SecurityContextHolder.getContext().getAuthentication().getName();
         Professor professor = (Professor) professorRepository.findByLogin(login);
 
-        if (professor == null) throw new RuntimeException("Professor não autenticado");
+        if (professor == null) throw new UnauthorizedOperationException("Professor não autenticado");
 
         List<Simulado> simulados = simuladoRepository.findByProfessorId(professor.getId());    
         return simulados.stream()
@@ -202,7 +207,7 @@ public class SimuladoService {
 
     @Transactional(readOnly = true)
     public Page<SimuladoAlunoResponseDTO> getResultadosDoSimulado(Long simuladoId, Pageable pageable){
-        if (!simuladoRepository.existsById(simuladoId)) throw new RuntimeException("Simulado não encontrado");
+        if (!simuladoRepository.existsById(simuladoId)) throw new ResourceNotFoundException("Simulado", "id", simuladoId);
 
         Page<SimuladoAluno> resultados = simuladoAlunoRepository.findBySimuladoId(simuladoId, pageable);
 
@@ -211,14 +216,14 @@ public class SimuladoService {
 
     @Transactional(readOnly = true)
     public SimuladoResumoDTO getResumoDoSimulado(Long simuladoId){
-        Simulado simulado = simuladoRepository.findById(simuladoId).orElseThrow(() -> new RuntimeException("Simulado não encontrado"));
+        Simulado simulado = simuladoRepository.findById(simuladoId).orElseThrow(() -> new ResourceNotFoundException("Simulado", "id", simuladoId));
 
         String login = SecurityContextHolder.getContext().getAuthentication().getName();
         Professor professor = (Professor) professorRepository.findByLogin(login);
 
-        if (professor == null) throw new RuntimeException("Professor não autenticado");
+        if (professor == null) throw new UnauthorizedOperationException("Professor não autenticado");
         if (!simulado.getProfessor().getId().equals(professor.getId())){
-            throw new RuntimeException("Apenas o professor criador do simulado pode ver o resumo.");
+            throw new UnauthorizedOperationException("Apenas o professor criador do simulado pode ver o resumo.");
         }
 
         List<SimuladoAluno> resultados = simuladoAlunoRepository.findBySimuladoId(simuladoId);
@@ -300,14 +305,14 @@ public class SimuladoService {
         String login = SecurityContextHolder.getContext().getAuthentication().getName();
         Professor professor = (Professor) professorRepository.findByLogin(login);
 
-        if (professor == null) throw new RuntimeException("Professor não autenticado.");
+        if (professor == null) throw new UnauthorizedOperationException("Professor não autenticado.");
 
-        Turma turma = turmaRepository.findById(data.turmaId()).orElseThrow(() -> new RuntimeException("Turma não encontrada."));
+        Turma turma = turmaRepository.findById(data.turmaId()).orElseThrow(() -> new ResourceNotFoundException("Turma", "id", data.turmaId()));
 
-        Disciplina disciplina = disciplinaRepository.findById(data.disciplinaId()).orElseThrow(() -> new RuntimeException("Disciplina não encontrada"));
+        Disciplina disciplina = disciplinaRepository.findById(data.disciplinaId()).orElseThrow(() -> new ResourceNotFoundException("Disciplina", "id", data.disciplinaId()));
 
         if (data.questoesId() == null || data.questoesId().isEmpty()){
-            throw new RuntimeException("Nenhuma questão selecionada");
+            throw new InvalidDataException("Nenhuma questão selecionada");
         }
 
         List<Questao> questoesSelecionadas = questaoRepository.findAllById(data.questoesId());
@@ -330,14 +335,14 @@ public class SimuladoService {
 
     @Transactional(readOnly = true)
     public Page<SimuladoAlunoResponseDTO> getAlunosDoSimulado(Long simuladoId, Pageable pageable){
-        Simulado simulado = simuladoRepository.findById(simuladoId).orElseThrow(() -> new RuntimeException("Simulado não encontrado."));
+        Simulado simulado = simuladoRepository.findById(simuladoId).orElseThrow(() -> new ResourceNotFoundException("Simulado não encontrado."));
 
         String login = SecurityContextHolder.getContext().getAuthentication().getName();
         Professor professor = (Professor) professorRepository.findByLogin(login);
 
-        if(professor == null) throw new RuntimeException("Professor não autenticado");
+        if(professor == null) throw new UnauthorizedOperationException("Professor não autenticado");
         if (!simulado.getProfessor().getId().equals(professor.getId())){
-            throw new RuntimeException("Apenas o professor criador pode ver as submissões.");
+            throw new UnauthorizedOperationException("Apenas o professor criador pode ver as submissões.");
         }
 
         Page<SimuladoAluno> page = simuladoAlunoRepository.findBySimuladoId(simuladoId, pageable);
