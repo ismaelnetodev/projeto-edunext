@@ -4,6 +4,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,6 +26,7 @@ import com.educamais.app.model.Aluno;
 import com.educamais.app.model.Turma;
 import com.educamais.app.services.TurmaService;
 
+import io.micrometer.core.ipc.http.HttpSender.Response;
 import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.PutMapping;
@@ -40,17 +45,15 @@ public class TurmaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TurmaResponseDTO>> listarTurmas(){
-        List<Turma> turmas = turmaService.listarTurmas();
-
-        if (turmas.isEmpty()){
-            return ResponseEntity.notFound().build();
-        }
-
-        List<TurmaResponseDTO> dtos = turmas.stream()
-            .map(TurmaResponseDTO::new)
-            .collect(Collectors.toList());
-        return ResponseEntity.ok().body(dtos);
+    public ResponseEntity<Page<TurmaResponseDTO>> listarTurmas(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size,
+        @RequestParam(defaultValue = "nome") String sortBy
+    ){
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+        Page<Turma> turmas = turmaService.listarTurmas(pageable);
+        Page<TurmaResponseDTO> dtos = turmas.map(TurmaResponseDTO::new);
+        return ResponseEntity.ok(dtos);        
     }
 
     @GetMapping("/{id}")

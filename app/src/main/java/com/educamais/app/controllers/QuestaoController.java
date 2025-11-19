@@ -1,6 +1,7 @@
 package com.educamais.app.controllers;
 
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.educamais.app.dtos.QuestaoCadastroDTO;
@@ -13,6 +14,10 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -36,16 +41,23 @@ public class QuestaoController {
     }
 
     @GetMapping()
-    public ResponseEntity<List<QuestaoResponseDTO>> getAllQuestoes() {
-        List<Questao> questao = questaoService.getAllQuestoes();
+    public ResponseEntity<Page<QuestaoResponseDTO>> getAllQuestoes(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size,
+        @RequestParam(defaultValue = "nome") String sortBy,
+        @RequestParam(required = false) Long disciplinaId
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy));
 
-        if (questao.isEmpty() || questao == null) return ResponseEntity.notFound().build();
+        Page<Questao> questoes;
+        if (disciplinaId != null){
+            questoes = questaoService.getAllQuestoesByDisciplina(disciplinaId, pageable);
+        } else {
+            questoes = questaoService.getAllQuestoes(pageable);
+        }
 
-        List<QuestaoResponseDTO> responseDTO = questao.stream()
-            .map(QuestaoResponseDTO::new)
-            .collect(Collectors.toList());
-
-        return ResponseEntity.ok().body(responseDTO);
+        Page<QuestaoResponseDTO> responseDTO = questoes.map(QuestaoResponseDTO::new);
+        return ResponseEntity.ok(responseDTO);
     }
 
     @GetMapping("{id}")

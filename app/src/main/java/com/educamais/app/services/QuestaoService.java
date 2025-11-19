@@ -1,6 +1,9 @@
 package com.educamais.app.services;
 
 import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,9 +48,19 @@ public class QuestaoService {
     }
 
     @Transactional(readOnly = true)
-    public List<Questao> getAllQuestoes(){
-        List<Questao> questao = questaoRepository.findAll();
-        return questao;
+    public Page<Questao> getAllQuestoes(Pageable pageable){
+        return questaoRepository.findAll(pageable);
+    }
+
+    @Transactional
+    public Page<Questao> getAllQuestoesByDisciplina(Long disciplinaId, Pageable pageable){
+        boolean exists = disciplinaRepository.existsById(disciplinaId);
+
+        if (!exists){
+            throw new ResourceNotFoundException("Disciplina", "id", disciplinaId);
+        }
+
+        return questaoRepository.findByDisciplinaId(disciplinaId, pageable);
     }
 
     @Transactional(readOnly = true)
