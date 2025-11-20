@@ -1,6 +1,7 @@
 package com.edunext.app.model;
 
-import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -22,16 +23,16 @@ public class Turma {
     private int anoLetivo;
 
     @OneToMany(mappedBy = "turma")
-    private List<Aluno> alunos;
+    private Set<Aluno> alunos;
 
     @ManyToMany(mappedBy = "turmas")
-    private List<Professor> professores;
+    private Set<Professor> professores;
 
-    public List<Professor> getProfessores() {
+    public Set<Professor> getProfessores() {
         return professores;
     }
 
-    public void setProfessores(List<Professor> professores) {
+    public void setProfessores(Set<Professor> professores) {
         this.professores = professores;
     }
 
@@ -66,12 +67,25 @@ public class Turma {
         this.anoLetivo = anoLetivo;
     }
 
-    public List<Aluno> getAlunos(){
+    public Set<Aluno> getAlunos(){
         return alunos;
     }
 
-    public void setAlunos(List<Aluno> alunos){
+    public void setAlunos(Set<Aluno> alunos){
         this.alunos = alunos;
+    }
+
+    @Override
+    public boolean equals(Object o){
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Turma turma = (Turma) o;
+        return Objects.equals(id, turma.id);
+    }
+
+    @Override
+    public int hashCode(){
+        return Objects.hash(id);
     }
     
 }

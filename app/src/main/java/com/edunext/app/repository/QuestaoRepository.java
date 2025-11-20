@@ -20,7 +20,6 @@ import com.edunext.app.model.Questao;
 @Repository
 public interface QuestaoRepository extends JpaRepository<Questao, Long> {
 
-    @EntityGraph(attributePaths = {"disciplina", "professorCriador"})
     @NonNull
     Page<Questao> findAll(@NonNull Pageable pageable);
 
@@ -28,11 +27,10 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long> {
     @Query("SELECT q FROM Questao q WHERE q.id = :id")
     Optional<Questao> findByIdWithRelations(@Param("id") Long id);
 
-    @EntityGraph(attributePaths = {"disciplina", "professorCriador"})
-    Page<Questao> findByDisciplinaId(Long disciplinaId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"disciplina", "professorCriador"})
+    Page<Questao> findByDisciplinaId(Long disciplinaId, Pageable pageable);
     Page<Questao> findByProfessorCriadorId(UUID professorId, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"disciplina", "professorCriador"})
     List<Questao> findByDisciplinaAndProfessorCriador(Disciplina disciplina, Professor professor);
 }

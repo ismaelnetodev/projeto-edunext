@@ -1,5 +1,6 @@
 package com.edunext.app.services;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -87,7 +88,7 @@ public class ProfessorService {
     @Transactional(readOnly = true)
     public List<Turma> getMinhasTurmas(){
         Professor professor = getProfessorLogado();
-        return professor.getTurmas();
+        return new ArrayList<>(professor.getTurmas());
     }
 
     private Professor getProfessorLogado(){

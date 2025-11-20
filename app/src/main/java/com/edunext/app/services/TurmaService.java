@@ -1,6 +1,7 @@
 package com.edunext.app.services;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -80,12 +81,10 @@ public class TurmaService {
         Professor professor = professorRepository.findById(professorId).orElseThrow(() -> new ResourceNotFoundException("Professor", "id", professorId));
 
         if (professor.getTurmas() == null){
-            professor.setTurmas(new ArrayList<>());
+            professor.setTurmas(new HashSet<>());
         }
 
-        if (!professor.getTurmas().contains(turma)){ 
-            professor.getTurmas().add(turma);
-        }
+        professor.getTurmas().add(turma);
 
         professorRepository.save(professor);
         return turma;
@@ -95,7 +94,7 @@ public class TurmaService {
     public List<Aluno> getAlunosPorTurma(Long turmaId){
         Turma turma = getTurma(turmaId);
 
-        return turma.getAlunos();
+        return new ArrayList<>(turma.getAlunos());
     }
 
     @Transactional(readOnly = true)

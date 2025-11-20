@@ -18,7 +18,6 @@ import com.edunext.app.model.Aluno;
 @Repository
 public interface AlunoRepository extends JpaRepository<Aluno, UUID>{
 
-    @EntityGraph(attributePaths = {"turma"})
     @NonNull
     Page<Aluno> findAll(@NonNull Pageable pageable);
 

@@ -17,7 +17,6 @@ import com.edunext.app.model.Turma;
 @Repository
 public interface TurmaRepository extends JpaRepository<Turma, Long>{
 
-    @EntityGraph(attributePaths = {"professores", "alunos"})
     @NonNull
     Page<Turma> findAll(@NonNull Pageable pageable);
 
@@ -25,15 +24,12 @@ public interface TurmaRepository extends JpaRepository<Turma, Long>{
     @Query("SELECT t FROM Turma t WHERE t.id = :id")
     Optional<Turma> findByIdWithRelations(@Param("id") Long id);
 
-    @Query("SELECT DISTINCT t FROM Turma t " +
-           "LEFT JOIN FETCH t.professores " +
-           "LEFT JOIN FETCH t.alunos")
-    List<Turma> findAllWithRelations();
-
-    boolean existsByNomeAndAnoLetivo(String nome, int anoLetivo);
-
     @EntityGraph(attributePaths = {"professores", "alunos"})
     @Query("SELECT t FROM Turma t WHERE UPPER(t.nome) LIKE UPPER(CONCAT(:termoBusca, '%'))")
     List<Turma> buscaRapidaPorNome(@Param("termoBusca") String termoBusca, Pageable pageable);
+
+    boolean existsByNomeAndAnoLetivo(String nome, int anoLetivo);
+
+ 
 
 }
