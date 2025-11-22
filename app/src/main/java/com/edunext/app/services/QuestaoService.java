@@ -21,19 +21,19 @@ import com.edunext.app.repository.QuestaoRepository;
 public class QuestaoService {
     private final QuestaoRepository questaoRepository;
     private final ProfessorRepository professorRepository;
-    private final DisciplinaRepository disciplinaRepository;
+    private final DisciplinaService disciplinaService;
 
-    public QuestaoService(QuestaoRepository questaoRepository, ProfessorRepository professorRepository, DisciplinaRepository disciplinaRepository){
+    public QuestaoService(QuestaoRepository questaoRepository, ProfessorRepository professorRepository, DisciplinaService disciplinaService){
         this.questaoRepository = questaoRepository;
         this.professorRepository = professorRepository;
-        this.disciplinaRepository = disciplinaRepository;
+        this.disciplinaService = disciplinaService;
     }
 
     @Transactional
     public Questao criarQuestao(QuestaoCadastroDTO data){
         Professor professor = getProfessorLogado();
 
-        Disciplina disciplina = resolveDisciplina(data.disciplina());
+        Disciplina disciplina = disciplinaService.buscarOuCriar(data.disciplina());
 
         Questao questao = new Questao();
         questao.setDisciplina(disciplina);
@@ -53,7 +53,7 @@ public class QuestaoService {
 
     @Transactional(readOnly = true)
     public Page<Questao> getAllQuestoesByDisciplina(@NonNull Long disciplinaId, Pageable pageable){
-        if (!disciplinaRepository.existsById(disciplinaId)){
+        if (!disciplinaService.existePorId(disciplinaId)){
             throw new ResourceNotFoundException("Disciplina", "id", disciplinaId);
         }
         return questaoRepository.findByDisciplinaId(disciplinaId, pageable);
@@ -74,7 +74,7 @@ public class QuestaoService {
             throw new UnauthorizedOperationException("Você só pode editar suas próprias questões.");
         }
 
-        Disciplina disciplina = resolveDisciplina(data.disciplina());
+        Disciplina disciplina = disciplinaService.buscarOuCriar(data.disciplina());
 
         questao.setDisciplina(disciplina);
         questao.setAlternativas(data.alternativas());
@@ -127,21 +127,4 @@ public class QuestaoService {
         return professor;
     }
 
-    private Disciplina resolveDisciplina(String nomeDisciplina){
-        if (nomeDisciplina == null || nomeDisciplina.trim().isEmpty()){
-            throw new RuntimeException("Nome da disciplina é obrigatório.");
-        }
-
-        return disciplinaRepository.findByNomeIgnoreCase(nomeDisciplina.trim())
-            .orElseGet(() -> {
-                Disciplina nova = new Disciplina();
-                nova.setNome(
-                    Character.toUpperCase(nomeDisciplina.trim()
-                    .charAt(0)) + nomeDisciplina.trim()
-                    .substring(1)
-                    .toLowerCase()
-                );
-                return disciplinaRepository.save(nova);
-            });
-    }
 }
