@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.edunext.app.dtos.AvaliacaoCadastroDTO;
+import com.edunext.app.exceptions.ResourceNotFoundException;
+import com.edunext.app.exceptions.UnauthorizedOperationException;
 import com.edunext.app.model.Aluno;
 import com.edunext.app.model.AvaliacaoQualitativa;
 import com.edunext.app.model.Professor;
@@ -40,7 +42,7 @@ public class AvaliacaoQualitativaService {
 
         Professor professor = (Professor) professorRepository.findByLogin(login);
 
-        if (professor == null) throw new RuntimeException("Professor não autenticado");
+        if (professor == null) throw new UnauthorizedOperationException("Professor não autenticado");
 
         Aluno aluno = alunoRepository.findById(data.alunoId()).orElseThrow(() -> new RuntimeException("Aluno não encontrado."));
 
@@ -59,7 +61,7 @@ public class AvaliacaoQualitativaService {
 
     @Transactional(readOnly = true)
     public List<AvaliacaoQualitativa> getHistoricoDoAluno(@NonNull UUID alunoId){
-        if (!alunoRepository.existsById(alunoId)) throw new RuntimeException("Aluno não encontrado.");
+        if (!alunoRepository.existsById(alunoId)) throw new ResourceNotFoundException("Aluno", "id", alunoId);
 
         return avaliacaoQualitativaRepository.findByAlunoIdOrderByDataAvaliacaoDesc(alunoId);
     }
