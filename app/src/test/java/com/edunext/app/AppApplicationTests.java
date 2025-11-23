@@ -1,4 +1,4 @@
-package com.educamais.app;
+package com.edunext.app;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
