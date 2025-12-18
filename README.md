@@ -104,10 +104,10 @@ Projeto acadêmico desenvolvido pelos alunos:
 * **[Mariana Stephany](https://www.linkedin.com/in/mariaraujojc/)**
 * **[Enzo Santiago](https://www.linkedin.com/in/enzo-santiago-ferreira-7ba742187/)**
 * **[João Pedro](https://www.linkedin.com/in/jo%C3%A3o-pedro-barbosa-6403ab308/)**
-* **[Grazielle Lima](Link-se-tiver)**
-* **[Maria Eduarda](Link-se-tiver)**
-* **[Josiel Ribeiro](Link-se-tiver)**
-* **[Heitor Wagner](Link-se-tiver)**
+* **[Grazielle Lima](#)**
+* **[Maria Eduarda](#)**
+* **[Josiel Ribeiro](#)**
+* **[Heitor Wagner](#)**
 
 ---
 <p align="center">
