@@ -15,12 +15,18 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 @Service
 public class StorageService {
     private final S3Client s3Client;
-
-    @Value("${cloud.aws.bucket.name}")
     private String bucketName;
 
-    public StorageService(S3Client s3Client){
+    public StorageService(
+            S3Client s3Client, 
+            @Value("${cloud.aws.bucket.name}") String bucketName
+    ) {
         this.s3Client = s3Client;
+        this.bucketName = bucketName;
+
+        if (this.bucketName == null || this.bucketName.isBlank()) {
+            throw new IllegalStateException("Bucket name vazio");
+        }
     }
 
     public String uploadFile(MultipartFile file) throws IOException {

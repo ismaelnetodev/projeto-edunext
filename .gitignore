@@ -158,3 +158,4 @@ replay_pid*
 /.vscode
 app/src/main/resources/application-local.properties
 app/src/main/resources/META-INF/additional-spring-configuration-metadata.json
+app/.env
